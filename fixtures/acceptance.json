@@ -1,0 +1,158 @@
+{
+  "scenario": "多边人工智能治理证据审议与异议保全台",
+  "synthetic": true,
+  "records": [
+    {
+      "record_id": "governance_claim-001",
+      "payload": {
+        "working_group": "working_group-0",
+        "topic": "topic-1",
+        "source_kind": "source_kind-2",
+        "source_version": "source_version-3",
+        "claim_id": "claim_id-4",
+        "claim_strength": 21.5,
+        "evidence_direction": "evidence_direction-1",
+        "scope_condition": "scope_condition-2",
+        "source_quality": 27.2,
+        "reproducibility": 0.47,
+        "member_count": 31.0,
+        "interpretation_confidence": 0.69
+      },
+      "state": "submitted",
+      "source": "synthetic-local-acceptance"
+    },
+    {
+      "record_id": "governance_claim-002",
+      "payload": {
+        "working_group": "working_group-1",
+        "topic": "topic-2",
+        "source_kind": "source_kind-3",
+        "source_version": "source_version-4",
+        "claim_id": "claim_id-0",
+        "claim_strength": 25.2,
+        "evidence_direction": "evidence_direction-2",
+        "scope_condition": "scope_condition-3",
+        "source_quality": 30.9,
+        "reproducibility": 0.58,
+        "member_count": 34.7,
+        "interpretation_confidence": 0.8
+      },
+      "state": "submitted",
+      "source": "synthetic-local-acceptance"
+    },
+    {
+      "record_id": "governance_claim-003",
+      "payload": {
+        "working_group": "working_group-2",
+        "topic": "topic-3",
+        "source_kind": "source_kind-4",
+        "source_version": "source_version-0",
+        "claim_id": "claim_id-1",
+        "claim_strength": 28.9,
+        "evidence_direction": "evidence_direction-3",
+        "scope_condition": "scope_condition-4",
+        "source_quality": 34.6,
+        "reproducibility": 0.69,
+        "member_count": 38.4,
+        "interpretation_confidence": 0.91
+      },
+      "state": "submitted",
+      "source": "synthetic-local-acceptance"
+    },
+    {
+      "record_id": "governance_claim-004",
+      "payload": {
+        "working_group": "working_group-3",
+        "topic": "topic-4",
+        "source_kind": "source_kind-0",
+        "source_version": "source_version-1",
+        "claim_id": "claim_id-2",
+        "claim_strength": 32.6,
+        "evidence_direction": "evidence_direction-4",
+        "scope_condition": "scope_condition-0",
+        "source_quality": 38.3,
+        "reproducibility": 0.8,
+        "member_count": 42.1,
+        "interpretation_confidence": 0.25
+      },
+      "state": "submitted",
+      "source": "synthetic-local-acceptance"
+    },
+    {
+      "record_id": "governance_claim-005",
+      "payload": {
+        "working_group": "working_group-4",
+        "topic": "topic-0",
+        "source_kind": "source_kind-1",
+        "source_version": "source_version-2",
+        "claim_id": "claim_id-3",
+        "claim_strength": 36.3,
+        "evidence_direction": "evidence_direction-0",
+        "scope_condition": "scope_condition-1",
+        "source_quality": 42.0,
+        "reproducibility": 0.91,
+        "member_count": 45.8,
+        "interpretation_confidence": 0.36
+      },
+      "state": "submitted",
+      "source": "synthetic-local-acceptance"
+    },
+    {
+      "record_id": "governance_claim-006",
+      "payload": {
+        "working_group": "working_group-0",
+        "topic": "topic-1",
+        "source_kind": "source_kind-2",
+        "source_version": "source_version-3",
+        "claim_id": "claim_id-4",
+        "claim_strength": 40.0,
+        "evidence_direction": "evidence_direction-1",
+        "scope_condition": "scope_condition-2",
+        "source_quality": 45.7,
+        "reproducibility": 0.25,
+        "member_count": 49.5,
+        "interpretation_confidence": 0.47
+      },
+      "state": "submitted",
+      "source": "synthetic-local-acceptance"
+    },
+    {
+      "record_id": "governance_claim-007",
+      "payload": {
+        "working_group": "working_group-1",
+        "topic": "topic-2",
+        "source_kind": "source_kind-3",
+        "source_version": "source_version-4",
+        "claim_id": "claim_id-0",
+        "claim_strength": 43.7,
+        "evidence_direction": "evidence_direction-2",
+        "scope_condition": "scope_condition-3",
+        "source_quality": 49.4,
+        "reproducibility": 0.36,
+        "member_count": 53.2,
+        "interpretation_confidence": 0.58
+      },
+      "state": "submitted",
+      "source": "synthetic-local-acceptance"
+    },
+    {
+      "record_id": "governance_claim-008",
+      "payload": {
+        "working_group": "working_group-2",
+        "topic": "topic-3",
+        "source_kind": "source_kind-4",
+        "source_version": "source_version-0",
+        "claim_id": "claim_id-1",
+        "claim_strength": 47.4,
+        "evidence_direction": "evidence_direction-3",
+        "scope_condition": "scope_condition-4",
+        "source_quality": 53.1,
+        "reproducibility": 0.47,
+        "member_count": 56.9,
+        "interpretation_confidence": 0.69
+      },
+      "state": "submitted",
+      "source": "synthetic-local-acceptance"
+    }
+  ]
+}
