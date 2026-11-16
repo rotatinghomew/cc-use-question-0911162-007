@@ -1,0 +1,122 @@
+{
+  "scenario": "正式异议接入决议审议：已回应、仍有争议、证据不足三态与主张链重评",
+  "synthetic": true,
+  "records": [
+    {
+      "record_id": "governance_claim-101",
+      "payload": {
+        "working_group": "working_group-0",
+        "topic": "topic-1",
+        "source_kind": "source_kind-2",
+        "source_version": "source_version-3",
+        "claim_id": "claim-chain-alpha",
+        "claim_strength": 55.0,
+        "evidence_direction": "support",
+        "scope_condition": "scope-condition-2",
+        "source_quality": 72.0,
+        "reproducibility": 0.78,
+        "member_count": 31.0,
+        "interpretation_confidence": 0.82
+      },
+      "state": "submitted",
+      "source": "synthetic-local-dissent"
+    },
+    {
+      "record_id": "governance_claim-102",
+      "payload": {
+        "working_group": "working_group-1",
+        "topic": "topic-1",
+        "source_kind": "source_kind-3",
+        "source_version": "source_version-4",
+        "claim_id": "claim-chain-alpha",
+        "claim_strength": 48.0,
+        "evidence_direction": "support",
+        "scope_condition": "scope-condition-2",
+        "source_quality": 64.0,
+        "reproducibility": 0.61,
+        "member_count": 34.0,
+        "interpretation_confidence": 0.7
+      },
+      "state": "submitted",
+      "source": "synthetic-local-dissent"
+    },
+    {
+      "record_id": "governance_claim-103",
+      "payload": {
+        "working_group": "working_group-2",
+        "topic": "topic-2",
+        "source_kind": "source_kind-4",
+        "source_version": "source_version-0",
+        "claim_id": "claim-chain-beta",
+        "claim_strength": 44.0,
+        "evidence_direction": "support",
+        "scope_condition": "scope-condition-4",
+        "source_quality": 58.0,
+        "reproducibility": 0.55,
+        "member_count": 28.0,
+        "interpretation_confidence": 0.66
+      },
+      "state": "submitted",
+      "source": "synthetic-local-dissent"
+    },
+    {
+      "record_id": "governance_claim-104",
+      "payload": {
+        "working_group": "working_group-3",
+        "topic": "topic-3",
+        "source_kind": "source_kind-0",
+        "source_version": "source_version-1",
+        "claim_id": "claim-chain-gamma",
+        "claim_strength": 40.0,
+        "evidence_direction": "support",
+        "scope_condition": "scope-condition-0",
+        "source_quality": 52.0,
+        "reproducibility": 0.5,
+        "member_count": 24.0,
+        "interpretation_confidence": 0.74
+      },
+      "state": "submitted",
+      "source": "synthetic-local-dissent"
+    }
+  ],
+  "objections": [
+    {
+      "objection_id": "objection-001",
+      "target_record_id": "governance_claim-101",
+      "basis": "translation",
+      "rationale": "关键证据译文与原文语义存在偏差，改变适用范围表述",
+      "evidence_refs": [
+        {"evidence_id": "transcript-77", "kind": "translation-note", "weight": 0.82, "detail": "第3.2条译文比对"},
+        {"evidence_id": "glossary-5", "kind": "terminology", "weight": 0.7, "detail": "术语表冲突"}
+      ]
+    },
+    {
+      "objection_id": "objection-002",
+      "target_record_id": "governance_claim-102",
+      "basis": "scope",
+      "rationale": "样本仅覆盖单一区域，主张被外推至全部工作范围",
+      "evidence_refs": [
+        {"evidence_id": "coverage-memo-9", "kind": "scope-note", "weight": 0.66, "detail": "区域覆盖缺口"}
+      ]
+    },
+    {
+      "objection_id": "objection-003",
+      "target_record_id": "governance_claim-103",
+      "basis": "translation",
+      "rationale": "对方法注释的翻译异议，但未附可核验材料",
+      "evidence_refs": [
+        {"evidence_id": "untracked-note", "kind": "note", "weight": 0.12, "detail": "无法追溯来源"}
+      ]
+    },
+    {
+      "objection_id": "objection-004",
+      "target_record_id": "governance_claim-104",
+      "basis": "scope",
+      "rationale": "对照试验范围界定异议，已有等权回应证据",
+      "evidence_refs": [
+        {"evidence_id": "protocol-31", "kind": "protocol", "weight": 0.58, "detail": "试验方案限制"}
+      ],
+      "response": {"evidence_id": "rebuttal-44", "kind": "protocol-amendment", "weight": 0.9, "detail": "补充对照范围说明"}
+    }
+  ]
+}

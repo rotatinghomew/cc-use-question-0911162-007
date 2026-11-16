@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 from typing import Sequence
 
-from evidence_deliberation.secretariat import Application, run, verify
+from evidence_deliberation.secretariat import Application, load_fixture, run, verify
 
 
 def parser() -> argparse.ArgumentParser:
@@ -20,6 +20,9 @@ def parser() -> argparse.ArgumentParser:
     check.add_argument("--output", required=True)
     inspect = commands.add_parser("inspect")
     inspect.add_argument("--database", required=True)
+    supplement = commands.add_parser("supplement")
+    supplement.add_argument("--fixture", required=True)
+    supplement.add_argument("--database", required=True)
     return root
 
 
@@ -29,6 +32,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         result = run(args.fixture, args.database, args.output)
     elif args.command == "verify":
         result = verify(args.database, args.output)
+    elif args.command == "supplement":
+        result = Application(args.database).supplement(load_fixture(args.fixture))
     else:
         result = Application(args.database).inspect()
     print(json.dumps(result, ensure_ascii=False, sort_keys=True))

@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Iterator, Mapping, Sequence
 
 from evidence_deliberation.claims.contract import Decision, DomainRecord, ContractError, canonical_json, stable_hash, utc_now
+from evidence_deliberation.dissent.objections import Objection, ObjectionAssessment
 
 
 SCHEMA = """
@@ -60,9 +61,55 @@ CREATE TABLE IF NOT EXISTS runs(
     started_at TEXT NOT NULL,
     finished_at TEXT
 );
+CREATE TABLE IF NOT EXISTS objections(
+    objection_id TEXT PRIMARY KEY,
+    target_record_id TEXT NOT NULL,
+    version INTEGER NOT NULL,
+    status TEXT NOT NULL,
+    chain_key TEXT NOT NULL,
+    objection_json TEXT NOT NULL,
+    fingerprint TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY(target_record_id) REFERENCES records(record_id)
+);
+CREATE TABLE IF NOT EXISTS objection_versions(
+    objection_id TEXT NOT NULL,
+    version INTEGER NOT NULL,
+    objection_json TEXT NOT NULL,
+    fingerprint TEXT NOT NULL,
+    stored_at TEXT NOT NULL,
+    PRIMARY KEY(objection_id, version)
+);
+CREATE TABLE IF NOT EXISTS objection_assessments(
+    objection_id TEXT NOT NULL,
+    objection_version INTEGER NOT NULL,
+    target_record_id TEXT NOT NULL,
+    target_version INTEGER NOT NULL,
+    chain_key TEXT NOT NULL,
+    status TEXT NOT NULL,
+    assessment_json TEXT NOT NULL,
+    fingerprint TEXT NOT NULL,
+    assessed_at TEXT NOT NULL,
+    PRIMARY KEY(objection_id, objection_version, target_version)
+);
+CREATE TABLE IF NOT EXISTS resolution_archives(
+    record_id TEXT PRIMARY KEY,
+    record_version INTEGER NOT NULL,
+    decision_id TEXT NOT NULL,
+    record_json TEXT NOT NULL,
+    decision_json TEXT NOT NULL,
+    evidence_refs_json TEXT NOT NULL,
+    objection_assessments_json TEXT NOT NULL,
+    record_fingerprint TEXT NOT NULL,
+    decision_fingerprint TEXT NOT NULL,
+    archived_at TEXT NOT NULL
+);
 CREATE INDEX IF NOT EXISTS idx_records_state ON records(state, updated_at);
 CREATE INDEX IF NOT EXISTS idx_events_aggregate ON events(aggregate_id, event_id);
 CREATE INDEX IF NOT EXISTS idx_decisions_record ON decisions(record_id, decided_at);
+CREATE INDEX IF NOT EXISTS idx_objections_target ON objections(target_record_id, objection_id);
+CREATE INDEX IF NOT EXISTS idx_assessments_status ON objection_assessments(status, objection_id);
+CREATE INDEX IF NOT EXISTS idx_assessments_chain ON objection_assessments(chain_key)
 """
 
 
@@ -185,6 +232,132 @@ class Repository:
             if owns:
                 connection.close()
 
+    def save_objection(self, objection: Objection, status: str) -> str:
+        with self.transaction() as connection:
+            if not connection.execute("SELECT 1 FROM records WHERE record_id=?",
+                                      (objection.target_record_id,)).fetchone():
+                raise ContractError("objection target record does not exist")
+            current = connection.execute("SELECT version FROM objections WHERE objection_id=?",
+                                         (objection.objection_id,)).fetchone()
+            if current and objection.version <= current[0]:
+                raise ContractError("objection version must advance")
+            body = canonical_json(objection.as_dict())
+            connection.execute("INSERT INTO objections(objection_id,target_record_id,version,status,chain_key,objection_json,fingerprint,updated_at) VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(objection_id) DO UPDATE SET target_record_id=excluded.target_record_id,version=excluded.version,status=excluded.status,chain_key=excluded.chain_key,objection_json=excluded.objection_json,fingerprint=excluded.fingerprint,updated_at=excluded.updated_at",
+                               (objection.objection_id, objection.target_record_id, objection.version,
+                                status, objection.chain_key, body, objection.fingerprint, utc_now()))
+            connection.execute("INSERT OR IGNORE INTO objection_versions(objection_id,version,objection_json,fingerprint,stored_at) VALUES(?,?,?,?,?)",
+                               (objection.objection_id, objection.version, body, objection.fingerprint, utc_now()))
+            self.append_event(connection, "objection.saved", objection.objection_id, objection.version,
+                              {"target_record_id": objection.target_record_id, "version": objection.version,
+                               "status": status, "fingerprint": objection.fingerprint})
+            return objection.fingerprint
+
+    def get_objection(self, objection_id: str) -> Objection | None:
+        with self.connect() as connection:
+            row = connection.execute("SELECT objection_json FROM objections WHERE objection_id=?",
+                                     (objection_id,)).fetchone()
+        return Objection.from_dict(json.loads(row[0])) if row else None
+
+    def list_objections(self, target_record_id: str | None = None) -> list[Objection]:
+        query = "SELECT objection_json FROM objections"
+        params: tuple[Any, ...] = ()
+        if target_record_id:
+            query += " WHERE target_record_id=?"
+            params = (target_record_id,)
+        query += " ORDER BY objection_id"
+        with self.connect() as connection:
+            rows = connection.execute(query, params).fetchall()
+        return [Objection.from_dict(json.loads(row[0])) for row in rows]
+
+    def save_assessment(self, assessment: ObjectionAssessment) -> str:
+        with self.transaction() as connection:
+            if not connection.execute("SELECT 1 FROM records WHERE record_id=?",
+                                      (assessment.target_record_id,)).fetchone():
+                raise ContractError("assessment record does not exist")
+            body = canonical_json(assessment.as_dict())
+            connection.execute("INSERT OR IGNORE INTO objection_assessments(objection_id,objection_version,target_record_id,target_version,chain_key,status,assessment_json,fingerprint,assessed_at) VALUES(?,?,?,?,?,?,?,?,?)",
+                               (assessment.objection_id, assessment.objection_version,
+                                assessment.target_record_id, assessment.target_version,
+                                assessment.chain_key, assessment.status,
+                                body, assessment.fingerprint, assessment.assessed_at))
+            connection.execute("UPDATE objections SET status=? WHERE objection_id=?",
+                               (assessment.status, assessment.objection_id))
+            self.append_event(connection, "objection.assessed", assessment.objection_id,
+                              self.event_count(assessment.objection_id, connection) + 1,
+                              {"target_record_id": assessment.target_record_id,
+                               "target_version": assessment.target_version, "status": assessment.status,
+                               "objection_version": assessment.objection_version,
+                               "fingerprint": assessment.fingerprint})
+        return assessment.fingerprint
+
+    def list_assessments(self, target_record_id: str | None = None,
+                         chain_key: str | None = None, status: str | None = None) -> list[ObjectionAssessment]:
+        query = "SELECT assessment_json FROM objection_assessments WHERE 1=1"
+        params: list[Any] = []
+        if target_record_id:
+            query += " AND target_record_id=?"
+            params.append(target_record_id)
+        if chain_key:
+            query += " AND chain_key=?"
+            params.append(chain_key)
+        if status:
+            query += " AND status=?"
+            params.append(status)
+        query += " ORDER BY objection_id, objection_version, target_version"
+        with self.connect() as connection:
+            rows = connection.execute(query, tuple(params)).fetchall()
+        return [ObjectionAssessment.from_dict(json.loads(row[0])) for row in rows]
+
+    def latest_assessments(self, target_record_id: str | None = None) -> list[ObjectionAssessment]:
+        rows = self.list_assessments(target_record_id=target_record_id)
+        latest: dict[str, ObjectionAssessment] = {}
+        for assessment in rows:
+            previous = latest.get(assessment.objection_id)
+            if previous is None or (assessment.objection_version, assessment.target_version) >= \
+                    (previous.objection_version, previous.target_version):
+                latest[assessment.objection_id] = assessment
+        return [latest[key] for key in sorted(latest)]
+
+    def save_resolution_archive(self, record: DomainRecord, decision: Decision,
+                                evidence_refs: Sequence[Mapping[str, Any]],
+                                assessments: Sequence[ObjectionAssessment]) -> str:
+        with self.transaction() as connection:
+            existing = connection.execute("SELECT record_fingerprint FROM resolution_archives WHERE record_id=?",
+                                          (record.record_id,)).fetchone()
+            if existing:
+                return existing[0]
+            record_body = canonical_json(record.__dict__)
+            decision_body = canonical_json(decision.as_dict())
+            evidence_body = canonical_json(list(evidence_refs))
+            assessment_body = canonical_json([item.as_dict() for item in assessments])
+            connection.execute("INSERT INTO resolution_archives(record_id,record_version,decision_id,record_json,decision_json,evidence_refs_json,objection_assessments_json,record_fingerprint,decision_fingerprint,archived_at) VALUES(?,?,?,?,?,?,?,?,?,?)",
+                               (record.record_id, record.version, decision.fingerprint, record_body,
+                                decision_body, evidence_body, assessment_body,
+                                record.fingerprint, decision.fingerprint, utc_now()))
+            self.append_event(connection, "resolution.archived", record.record_id, record.version,
+                              {"record_version": record.version, "decision_id": decision.fingerprint,
+                               "record_fingerprint": record.fingerprint,
+                               "decision_fingerprint": decision.fingerprint})
+        return record.fingerprint
+
+    def get_archive(self, record_id: str) -> dict[str, Any] | None:
+        with self.connect() as connection:
+            row = connection.execute("SELECT * FROM resolution_archives WHERE record_id=?",
+                                     (record_id,)).fetchone()
+        if not row:
+            return None
+        result = dict(row)
+        result["record"] = json.loads(result.pop("record_json"))
+        result["decision"] = json.loads(result.pop("decision_json"))
+        result["evidence_refs"] = json.loads(result.pop("evidence_refs_json"))
+        result["objection_assessments"] = json.loads(result.pop("objection_assessments_json"))
+        return result
+
+    def list_archives(self) -> list[dict[str, Any]]:
+        with self.connect() as connection:
+            rows = connection.execute("SELECT record_id FROM resolution_archives ORDER BY record_id").fetchall()
+        return [archive for row in rows if (archive := self.get_archive(row[0]))]
+
     def begin_run(self, fixture_hash: str, record_count: int) -> str:
         run_id = stable_hash({"fixture_hash": fixture_hash, "record_count": record_count})[:24]
         with self.transaction() as connection:
@@ -233,7 +406,9 @@ class Repository:
     def snapshot(self) -> dict[str, Any]:
         with self.connect() as connection:
             counts = {table: connection.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
-                      for table in ("records", "record_versions", "decisions", "events", "runs")}
+                      for table in ("records", "record_versions", "decisions", "events", "runs",
+                                    "objections", "objection_versions", "objection_assessments",
+                                    "resolution_archives")}
             states = {row[0]: row[1] for row in connection.execute("SELECT state,COUNT(*) FROM records GROUP BY state")}
         return {"counts": counts, "states": states, "chain_errors": self.verify_chain()}
 

@@ -1,0 +1,60 @@
+{
+  "scenario": "补充证据与异议回应：仅重评受影响的主张链",
+  "synthetic": true,
+  "records": [
+    {
+      "record_id": "governance_claim-101",
+      "payload": {
+        "working_group": "working_group-0",
+        "topic": "topic-1",
+        "source_kind": "source_kind-2",
+        "source_version": "source_version-5",
+        "claim_id": "claim-chain-alpha",
+        "claim_strength": 57.0,
+        "evidence_direction": "support",
+        "scope_condition": "scope-condition-2",
+        "source_quality": 78.0,
+        "reproducibility": 0.83,
+        "member_count": 33.0,
+        "interpretation_confidence": 0.86
+      },
+      "state": "submitted",
+      "source": "synthetic-local-supplement"
+    },
+    {
+      "record_id": "governance_claim-103",
+      "payload": {
+        "working_group": "working_group-2",
+        "topic": "topic-2",
+        "source_kind": "source_kind-4",
+        "source_version": "source_version-2",
+        "claim_id": "claim-chain-beta",
+        "claim_strength": 47.0,
+        "evidence_direction": "support",
+        "scope_condition": "scope-condition-4",
+        "source_quality": 63.0,
+        "reproducibility": 0.62,
+        "member_count": 30.0,
+        "interpretation_confidence": 0.71
+      },
+      "state": "submitted",
+      "source": "synthetic-local-supplement"
+    }
+  ],
+  "objection_responses": [
+    {
+      "objection_id": "objection-001",
+      "target_record_id": "governance_claim-101",
+      "basis": "translation",
+      "rationale": "提交经独立机构复核的权威译文，覆盖原翻译异议",
+      "response": {"evidence_id": "certified-translation-2", "kind": "certified-translation", "weight": 0.95, "detail": "独立复核译文"}
+    },
+    {
+      "objection_id": "objection-003",
+      "target_record_id": "governance_claim-103",
+      "basis": "translation",
+      "rationale": "补充可追溯来源材料，回应证据不足的异议",
+      "response": {"evidence_id": "traceable-source-18", "kind": "source-registry", "weight": 0.88, "detail": "来源登记可核验"}
+    }
+  ]
+}

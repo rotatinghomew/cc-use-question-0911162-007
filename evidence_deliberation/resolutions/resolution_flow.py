@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Callable, Mapping
+from typing import Any, Callable, Mapping, Sequence
 
 from evidence_deliberation.claims.contract import ContractError, Decision, DomainRecord, RuleResult, bounded
 from evidence_deliberation.options.frontier import grouped_metrics, record_score
 from evidence_deliberation.arguments.graph_rules import evaluate
+from evidence_deliberation.dissent.objections import BLOCKING_STATUSES
 
 STATES = ['submitted', 'screened', 'linked', 'deliberating', 'resolved', 'archived']
 TRANSITIONS = {state: tuple(STATES[i + 1:i + 3]) for i, state in enumerate(STATES)}
@@ -1133,16 +1134,21 @@ def guard_contract(record: DomainRecord, context: Mapping[str, Any] | None = Non
     return {'passed': sum(item[0] for item in results), 'failed': sum(not item[0] for item in results),
             'messages': [item[1] for item in results]}
 
-def decide(record: DomainRecord, context: Mapping[str, Any] | None = None) -> Decision:
+def decide(record: DomainRecord, context: Mapping[str, Any] | None = None,
+           objection_statuses: Sequence[str] | None = None) -> Decision:
     context = context or {}
     rules = evaluate(record, context)
     scorecard = record_score(record, context)
     guards = guard_contract(record, context)
     effective_score = scorecard['score'] * 0.65 + float(context.get('domain_signal', 0.5)) * 0.35
     critical = sum(item.claim_strength == 'critical' for item in rules)
+    # 仍有争议或证据不足的异议直接压住待发布决议，使其无法通过；已回应异议不阻断。
+    blocking = sorted({status for status in (objection_statuses or ()) if status in BLOCKING_STATUSES})
     if context.get('domain_severity') == 'critical':
         outcome = 'hold'
     elif critical:
+        outcome = 'hold'
+    elif blocking:
         outcome = 'hold'
     elif effective_score >= float(context.get('approve_threshold', 0.62)) and guards['passed'] >= guards['failed']:
         outcome = 'approve'
@@ -1151,13 +1157,18 @@ def decide(record: DomainRecord, context: Mapping[str, Any] | None = None) -> De
     else:
         outcome = 'reject'
     reasons = (f"score={effective_score:.6f}", f"critical={critical}",
-               f"guards={guards['passed']}/{guards['passed'] + guards['failed']}")
+               f"guards={guards['passed']}/{guards['passed'] + guards['failed']}",
+               f"blocking_objections={','.join(blocking) if blocking else 'none'}")
     return Decision(record.record_id, outcome, effective_score, reasons, rules, scorecard['metrics'])
 
 def advance_for_outcome(record: DomainRecord, decision: Decision) -> DomainRecord:
     current = STATES.index(record.state)
     if decision.outcome == 'approve' and current + 1 < len(STATES):
         return record.with_state(STATES[current + 1])
-    if decision.outcome == 'hold' and STATES[-1] != record.state:
-        return record.with_state(STATES[-1])
+    if decision.outcome == 'hold':
+        # 被异议压住的决议停留在审议中，不得越过待发布环节直接归档；
+        # 仅当记录已处于归档前一状态时，回退到 deliberating 以等待异议处理。
+        target = min(current, STATES.index('deliberating'))
+        if target != current:
+            return record.with_state(STATES[target])
     return record
